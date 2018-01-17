@@ -9,7 +9,7 @@ pygame.init()
 
 # set up the window
 WHITE = (255, 255, 255)
-(width, height) = (300, 200)
+(width, height) = (400, 400)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Hello World!')
 
@@ -31,10 +31,27 @@ class Particle:
                            self.size, self.thickness)
 
     def move_particle(self):
-        """ """
+        """Move particle."""
         self.x += math.sin(self.angle) * self.speed
         self.y -= math.cos(self.angle) * self.speed
 
+    def bounce(self):
+        """Bounce particle form the walls."""
+        if self.x >= width - self.size:
+            self.x = 2*(width - self.size) - self.x
+            self.angle = - self.angle
+
+        elif self.x <= self.size:
+            self.x = 2*self.size - self.x
+            self.angle = - self.angle
+
+        if self.y > height - self.size:
+            self.y = 2*(height - self.size) - self.y
+            self.angle = math.pi - self.angle
+
+        elif self.y < self.size:
+            self.y = 2*self.size - self.y
+            self.angle = math.pi - self.angle
 
 number_of_particle = 10
 particles = []
@@ -46,7 +63,7 @@ for n in range(number_of_particle):
     y = random.randint(size, height - size)
     particle = (Particle((x, y), size))
     # update speed and angle of existing object
-    particle.speed = random.random()
+    particle.speed = 0.01
     particle.angle = random.uniform(0, math.pi*2)
     # add new particle to the list
     particles.append(particle)
@@ -61,5 +78,6 @@ while True:  # main loop
 
     for particle in particles:
         particle.move_particle()
+        particle.bounce()
         particle.display()
     pygame.display.update()
