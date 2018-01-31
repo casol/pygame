@@ -11,7 +11,9 @@ FPS = 30  # frames per second
 fps_clock = pygame.time.Clock()
 
 # set up the window
-DISPLAY = pygame.display.set_mode((800, 600))
+WIDTH = 800
+HEIGHT = 600
+DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('YESS - Yet_Another_Space_Shooter')
 # colors
 RED = (255, 0, 0)
@@ -19,26 +21,26 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 
-
 class Ship(object):
     def __init__(self):
         """The constructor of the class."""
         self.ship_image = pygame.image.load('ship.png')
-        # ship start position
-        self.x = 100
-        self.y = 100
+        # ship start position - middle of screen
+        self.x = WIDTH/2
+        self.y = HEIGHT/2
+        self.rotation_step = 3
 
     def handle_keys(self):
-        """ Handles Keys """
+        """Rotate based on keys pressed."""
         key = pygame.key.get_pressed()
-        distance = 5  # distance moved in 1 frame, try changing it to 5
-        if key[pygame.K_DOWN]:  # down key
+        distance = 5  # distance moved in 1 frame
+        if key[K_DOWN]:  # down key
             self.y += distance  # move down
-        elif key[pygame.K_UP]:  # up key
+        elif key[K_UP]:  # up key
             self.y -= distance  # move up
-        if key[pygame.K_RIGHT]:  # right key
+        if key[K_RIGHT]:  # right key
             self.x += distance  # move right
-        elif key[pygame.K_LEFT]:  # left key
+        elif key[K_LEFT]:  # left key
             self.x -= distance  # move left
 
     def draw(self, surface):
@@ -48,6 +50,12 @@ class Ship(object):
 
 # create an instance
 ship = Ship()
+
+
+x = 400
+y = 300
+distance = 10
+angle = 10
 
 while True:  # game loop
     DISPLAY.fill(WHITE)
