@@ -20,6 +20,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 
 x = 200
 y = 300
@@ -32,7 +33,6 @@ class Block(pygame.sprite.Sprite):
     """Create sprite."""
     def __init__(self, color, width, height, x, y):
         # Call the parent class (Sprite constructor)
-        #super().__init__(self)  # python 3
         super(Block, self).__init__()
         #pygame.sprite.Sprite.__init__(self)
         self.x = x
@@ -80,8 +80,17 @@ class Ship(pygame.sprite.Sprite):
         elif key[K_LEFT]:  # left key
             self.x -= distance  # move left
 
+# block group
 block_obj = Block(RED, 20, 30, 600, 500)
+blocks = pygame.sprite.Group()
+blocks.add(block_obj)
+
+
+# player group
 ship_obj = Ship()
+player_group = pygame.sprite.Group()
+player_group.add(ship_obj)
+
 
 while True:  # game loop
     DISPLAY.fill(WHITE)
@@ -90,31 +99,9 @@ while True:  # game loop
             pygame.quit()
             sys.exit()
 
-    ship_image = pygame.image.load('ship.png')
-    meteor_image = pygame.image.load('meteor.png')
-
-    key = pygame.key.get_pressed()
-    if key[K_RIGHT]:  # right key
-        x += distance  # move right
-    if key[K_DOWN]:  # down key
-        y += distance  # move down
-    elif key[K_UP]:  # up key
-        y -= distance  # move up
-    if key[K_RIGHT]:  # right key
-        x += distance  # move right
-    elif key[K_LEFT]:  # left key
-        x -= distance  # move left
-
-    #font_obj = pygame.font.Font('freesansbold.ttf', 32)
-    #txt_surface_obj = font_obj.render('He', True, RED)
-    #txt_rect_obj = txt_surface_obj.get_rect()
-    #txt_rect_obj.center = (200, 150)
-    #DISPLAY.blit(ship_image, (x, y))
-
+    # meteor_image = pygame.image.load('meteor.png')
     ship_obj.handle_keys()
     ship_obj.draw(DISPLAY)
     block_obj.draw(DISPLAY)
-    DISPLAY.blit(meteor_image, (0, 0))
-    #DISPLAY.blit(txt_surface_obj, txt_rect_obj)
     pygame.display.update()
     fps_clock.tick(FPS)
