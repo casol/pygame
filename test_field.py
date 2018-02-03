@@ -3,6 +3,7 @@
 
 import pygame
 import sys
+import random
 from pygame.locals import *  # pygame.locals.QUIT --> QUIT
 
 pygame.init()
@@ -15,7 +16,8 @@ WIDTH = 800
 HEIGHT = 600
 DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('YESS - Yet_Another_Space_Shooter')
-# colors
+
+# RGB colors
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
@@ -85,11 +87,13 @@ block_obj = Block(RED, 20, 30, 600, 500)
 blocks = pygame.sprite.Group()
 blocks.add(block_obj)
 
-
 # player group
 ship_obj = Ship()
 player_group = pygame.sprite.Group()
 player_group.add(ship_obj)
+
+all_sprites = pygame.sprite.Group()
+
 
 
 while True:  # game loop
@@ -100,6 +104,8 @@ while True:  # game loop
             sys.exit()
 
     # meteor_image = pygame.image.load('meteor.png')
+    all_sprites.update()
+    all_sprites.draw(DISPLAY)
     ship_obj.handle_keys()
     ship_obj.draw(DISPLAY)
     block_obj.draw(DISPLAY)
