@@ -1,68 +1,46 @@
-""" rotate.py
-    demonstrate rotating a sprite"""
-
+import math
 import pygame
-import os
+
 
 pygame.init()
 
+screen = pygame.display.set_mode((640, 480))
+clock = pygame.time.Clock()
 
-class Ship(pygame.sprite.Sprite):
-    def __init__(self):
+BULLET_IMAGE = pygame.Surface((20, 11), pygame.SRCALPHA)
+pygame.draw.polygon(BULLET_IMAGE, pygame.Color('aquamarine1'),
+                [(0, 0), (20, 5), (0, 11)])
+
+
+class Bullet(pygame.sprite.Sprite):
+
+    def __init__(self, x, y, angle, speed):
         pygame.sprite.Sprite.__init__(self)
-        self.imageMaster = pygame.image.load("ship.png")
-        self.imageMaster = self.imageMaster.convert()
-        self.image = self.imageMaster
-        self.rect = self.image.get_rect()
-        self.rect.center = (320, 240)
-        self.dir = 0
+        # Rotate the bullet image (negative angle because y-axis is flipped).
+        self.image = pygame.transform.rotate(BULLET_IMAGE, -angle)
+        self.rect = self.image.get_rect(center=(x, y))
+        angle = math.radians(angle)
+        self.speed_x = speed * math.cos(angle)
+        self.speed_y = speed * math.sin(angle)
 
     def update(self):
-        oldCenter = self.rect.center
-        self.image = pygame.transform.rotate(self.imageMaster, self.dir)
-        self.rect = self.image.get_rect()
-        self.rect.center = oldCenter
+        self.rect.x += self.speed_x
+        self.rect.y += self.speed_y
 
-    def turnLeft(self):
-        self.dir += 5
-        if self.dir > 360:
-            self.dir = 45
+spr = pygame.sprite.Group()
+bullet = Bullet(10, 10, 60, 3)
+bullet2 = Bullet(10, 10, 30, 3)
+spr.add(bullet, bullet2)
 
-    def turnRight(self):
-        self.dir -= 5
-        if self.dir < 0:
-            self.dir = 315
+play = True
+while play:
+    clock.tick(60)
+    for ev in pygame.event.get():
+        if ev.type == pygame.QUIT:
+            play = False
+    screen.fill((30,30,40))
+    spr.update()
+    spr.draw(screen)
+    pygame.display.flip()
 
-
-def main():
-    screen = pygame.display.set_mode((640, 480))
-    pygame.display.set_caption("Rotate a sprite")
-
-    background = pygame.Surface(screen.get_size())
-    background.fill((0, 0, 0))
-
-    ship = Ship()
-    allSprites = pygame.sprite.Group(ship)
-
-    clock = pygame.time.Clock()
-    keepGoing = True
-    while keepGoing:
-        clock.tick(30)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                keepGoing = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    ship.turnLeft()
-                elif event.key == pygame.K_RIGHT:
-                    ship.turnRight()
-
-        allSprites.clear(screen, background)
-        allSprites.update()
-        allSprites.draw(screen)
-
-        pygame.display.flip()
-
-
-if __name__ == "__main__":
-    main()
+pygame.quit()
