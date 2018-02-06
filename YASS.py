@@ -49,23 +49,25 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = (WIDTH/2, HEIGHT/2)
         self.delta_x = 1
         self.delta_y = 1
-        self.rotation = 5
+        self.rotation = 0
         self.rotation_speed = 3
         self.rotation_speed_r = -3
+        self.velocity_step = 2
 
     def update(self):
         """Move based on keys pressed."""
         key = pygame.key.get_pressed()
-        if key[K_DOWN]:  # down key
-            self.rect.y += self.delta_y  # move up
-        elif key[K_UP]:  # up key
-            self.rect.y -= self.delta_y # move up
         if key[K_RIGHT]:  # ship rotates clockwise
             self.rotate_r()
         elif key[K_LEFT]:  # ship rotates counterclockwise.
             self.rotate()
         if key[K_SPACE]:
             player.shoot()
+
+        if key[K_UP]:
+            #self.rotation = (self.rotation + self.rotation_speed) % 360
+            self.rect.x += self.velocity_step * math.sin(self.rotation)
+            self.rect.y += self.velocity_step * -math.cos(self.rotation)
 
     def rotate(self):
         """Rotate an image while keeping its center."""

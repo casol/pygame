@@ -1,46 +1,69 @@
 import math
-import pygame
+import pygame as pg
+from pygame.math import Vector2
 
 
-pygame.init()
+class Player(pg.sprite.Sprite):
 
-screen = pygame.display.set_mode((640, 480))
-clock = pygame.time.Clock()
-
-BULLET_IMAGE = pygame.Surface((20, 11), pygame.SRCALPHA)
-pygame.draw.polygon(BULLET_IMAGE, pygame.Color('aquamarine1'),
-                [(0, 0), (20, 5), (0, 11)])
-
-
-class Bullet(pygame.sprite.Sprite):
-
-    def __init__(self, x, y, angle, speed):
-        pygame.sprite.Sprite.__init__(self)
-        # Rotate the bullet image (negative angle because y-axis is flipped).
-        self.image = pygame.transform.rotate(BULLET_IMAGE, -angle)
-        self.rect = self.image.get_rect(center=(x, y))
-        angle = math.radians(angle)
-        self.speed_x = speed * math.cos(angle)
-        self.speed_y = speed * math.sin(angle)
+    def __init__(self, pos=(420, 420)):
+        super(Player, self).__init__()
+        self.image = pg.Surface((70, 50), pg.SRCALPHA)
+        pg.draw.polygon(self.image, (50, 120, 180), ((0, 0), (0, 50), (70, 25)))
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=pos)
+        self.position = Vector2(pos)
+        self.direction = Vector2(1, 0)  # A unit vector pointing rightward.
+        self.speed = 0
+        self.angle_speed = 0
+        self.angle = 0
 
     def update(self):
-        self.rect.x += self.speed_x
-        self.rect.y += self.speed_y
+        if self.angle_speed != 0:
+            # Rotate the direction vector and then the image.
+            self.direction.rotate_ip(self.angle_speed)
+            self.angle += self.angle_speed
+            self.image = pg.transform.rotate(self.original_image, -self.angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
+        # Update the position vector and the rect.
+        self.position += self.direction * self.speed
+        self.rect.center = self.position
 
-spr = pygame.sprite.Group()
-bullet = Bullet(10, 10, 60, 3)
-bullet2 = Bullet(10, 10, 30, 3)
-spr.add(bullet, bullet2)
 
-play = True
-while play:
-    clock.tick(60)
-    for ev in pygame.event.get():
-        if ev.type == pygame.QUIT:
-            play = False
-    screen.fill((30,30,40))
-    spr.update()
-    spr.draw(screen)
-    pygame.display.flip()
+def main():
+    pg.init()
+    screen = pg.display.set_mode((1280, 720))
+    player = Player((420, 420))
+    playersprite = pg.sprite.RenderPlain((player))
 
-pygame.quit()
+    clock = pg.time.Clock()
+    done = False
+    while not done:
+        clock.tick(60)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                done = True
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_UP:
+                    player.speed += 1
+                elif event.key == pg.K_DOWN:
+                    player.speed -= 1
+                elif event.key == pg.K_LEFT:
+                    player.angle_speed = -4
+                elif event.key == pg.K_RIGHT:
+                    player.angle_speed = 4
+            elif event.type == pg.KEYUP:
+                if event.key == pg.K_LEFT:
+                    player.angle_speed = 0
+                elif event.key == pg.K_RIGHT:
+                    player.angle_speed = 0
+
+        playersprite.update()
+
+        screen.fill((30, 30, 30))
+        playersprite.draw(screen)
+        pg.display.flip()
+        print(player.rect.x, player.rect.y)
+
+if __name__ == '__main__':
+    main()
+    pg.quit()
