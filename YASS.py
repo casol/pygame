@@ -64,11 +64,6 @@ class Player(pygame.sprite.Sprite):
         if key[K_SPACE]:
             player.shoot()
 
-        if key[K_UP]:
-            #self.rotation = (self.rotation + self.rotation_speed) % 360
-            self.rect.x += self.velocity_step * math.sin(self.rotation)
-            self.rect.y += self.velocity_step * -math.cos(self.rotation)
-
     def rotate(self):
         """Rotate an image while keeping its center."""
         self.rotation = (self.rotation + self.rotation_speed) % 360

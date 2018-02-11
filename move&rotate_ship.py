@@ -47,22 +47,17 @@ class Player(pygame.sprite.Sprite):
         self.thrust = 0
         self.max_speed = 12
 
+    def rotate(self):
+        """Rotate an image while keeping its center."""
+        rotation = (self.angle) % 360
+        new_image = pygame.transform.rotate(self.original_image, rotation)
+        old_center = self.rect.center  # save its current center
+        self.image = new_image
+        self.rect = self.image.get_rect()  # replace old rect with new rect
+        self.rect.center = old_center  # put the new rect's center at old center
+
     def drew(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
-
-    def draw_spaceship(self, screen):
-        magnitude = 30
-        p1_angle = self.angle
-        p2_angle = self.angle + math.radians(145)
-        p3_angle = self.angle - math.radians(145)
-        p1 = (math.cos(p1_angle) * magnitude + self.rect.x, -math.sin(p1_angle) * magnitude + self.rect.y)
-        p2 = (math.cos(p2_angle) * magnitude + self.rect.x, -math.sin(p2_angle) * magnitude + self.rect.y)
-        p3 = (math.cos(p3_angle) * magnitude + self.rect.x, -math.sin(p3_angle) * magnitude + self.rect.y)
-
-        pygame.draw.line(screen, WHITE, (p1[0], p1[1]), (p2[0], p2[1]))
-        pygame.draw.line(screen, WHITE, (p1[0], p1[1]), (p3[0], p3[1]))
-        pygame.draw.line(screen, WHITE, (p2[0], p2[1]), (p3[0], p3[1]))
-        pygame.draw.circle(screen, RED, (int(self.rect.x), int(self.rect.y)), 1)
 
     def add_vectors(self):
         x = math.sin(self.trajectory_angle) * self.speed + math.sin(self.angle) * self.thrust
@@ -80,9 +75,11 @@ class Player(pygame.sprite.Sprite):
             if event.key == K_LEFT:
                 #self.angle_change = .03
                 self.angle += .03
+                player.rotate()
             elif event.key == K_RIGHT:
                 #self.angle_change = -.03
                 self.angle += -.03
+                player.rotate()
             elif event.key == K_UP:
                 self.thrust = .04
 
@@ -122,8 +119,8 @@ while True:  # game loop
     player.update()
     player.position()
     player.add_vectors()
-    player.draw_spaceship(DISPLAY)
-    player.wrap_around_screen()
+    player.drew(DISPLAY)
+    #player.wrap_around_screen()
 
     print('x:', player.rect.x, 'y:', player.rect.y, 'player.angle:', player.angle)
     print('trajectory_ang:', player.trajectory_angle, 'speed:', player.speed, 'thrust:', player.thrust)
