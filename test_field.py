@@ -1,131 +1,118 @@
-import pygame
-import sys
-import random
-import os
-import math
-from pygame.locals import *  # pygame.locals.QUIT --> QUIT
+# Steering Behavior Examples
+# Seek & Approach
+# KidsCanCode 2016
+# Video lesson: https://youtu.be/g1jo_qsO5c4
 
-# game assets
-game_folder = os.path.dirname(__file__)
-img_folder = os.path.join(game_folder, 'img')
-sound_folder = os.path.join(game_folder, 'sound')
+import pygame as pg
+from random import randint, uniform
+vec = pg.math.Vector2
 
-# initialize pygame
-pygame.init()
-
-FPS = 60  # frames per second
-fps_clock = pygame.time.Clock()
-
-# set up the window
 WIDTH = 800
-HEIGHT = 800
-DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('TEST -> MOVING AND ROTATION')
-
-# RGB colors
+HEIGHT = 600
+FPS = 60
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
+DARKGRAY = (40, 40, 40)
 
+# Mob properties
+MOB_SIZE = 32
+MAX_SPEED = 5
+MAX_FORCE = 0.1
+APPROACH_RADIUS = 120
 
-class Player(pygame.sprite.Sprite):
+class Mob(pg.sprite.Sprite):
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        # set ship image
-        self.original_image = player_img  # image before rotation
-        self.image = self.original_image.copy()
+        self.groups = all_sprites
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.image = pg.Surface((MOB_SIZE, MOB_SIZE))
+        self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH / 2, HEIGHT / 2)
-        # movement
-        self.angle = math.pi / 2
-        self.angle_change = 0
-        self.trajectory_angle = self.angle
+        self.pos = vec(randint(0, WIDTH), randint(0, HEIGHT))
+        self.vel = vec(MAX_SPEED, 0).rotate(uniform(0, 360))
+        self.acc = vec(0, 0)
+        self.rect.center = self.pos
 
-        self.speed = 0
-        self.thrust = 0
-        self.max_speed = 12
+    def seek(self, target):
+        self.desired = (target - self.pos).normalize() * MAX_SPEED
+        steer = (self.desired - self.vel)
+        if steer.length() > MAX_FORCE:
+            steer.scale_to_length(MAX_FORCE)
+        return steer
 
-    def drew(self, surface):
-        surface.blit(self.image, (self.rect.x, self.rect.y))
-
-    def draw_spaceship(self, screen):
-        magnitude = 30
-        p1_angle = self.angle
-        p2_angle = self.angle + math.radians(145)
-        p3_angle = self.angle - math.radians(145)
-        p1 = (math.cos(p1_angle) * magnitude + self.rect.x, -math.sin(p1_angle) * magnitude + self.rect.y)
-        p2 = (math.cos(p2_angle) * magnitude + self.rect.x, -math.sin(p2_angle) * magnitude + self.rect.y)
-        p3 = (math.cos(p3_angle) * magnitude + self.rect.x, -math.sin(p3_angle) * magnitude + self.rect.y)
-
-        pygame.draw.line(screen, WHITE, (p1[0], p1[1]), (p2[0], p2[1]))
-        pygame.draw.line(screen, WHITE, (p1[0], p1[1]), (p3[0], p3[1]))
-        pygame.draw.line(screen, WHITE, (p2[0], p2[1]), (p3[0], p3[1]))
-        pygame.draw.circle(screen, RED, (int(self.rect.x), int(self.rect.y)), 1)
-
-    def add_vectors(self):
-        x = math.sin(self.trajectory_angle) * self.speed + math.sin(self.angle) * self.thrust
-        y = math.cos(self.trajectory_angle) * self.speed + math.cos(self.angle) * self.thrust
-        # pi/2 -> 90°
-        self.trajectory_angle = 0.5 * math.pi - math.atan2(y, x)
-        self.speed = math.hypot(x, y)
-
-    def position(self):
-        self.rect.x += math.cos(self.trajectory_angle) * self.speed
-        self.rect.y -= math.sin(self.trajectory_angle) * self.speed
+    def seek_with_approach(self, target):
+        self.desired = (target - self.pos)
+        dist = self.desired.length()
+        self.desired.normalize_ip()
+        if dist < APPROACH_RADIUS:
+            self.desired *= dist / APPROACH_RADIUS * MAX_SPEED
+        else:
+            self.desired *= MAX_SPEED
+        steer = (self.desired - self.vel)
+        if steer.length() > MAX_FORCE:
+            steer.scale_to_length(MAX_FORCE)
+        return steer
 
     def update(self):
-        if event.type == KEYDOWN:
-            if event.key == K_LEFT:
-                #self.angle_change = .03
-                self.angle += .03
-            elif event.key == K_RIGHT:
-                #self.angle_change = -.03
-                self.angle += -.03
-            elif event.key == K_UP:
-                self.thrust = .04
+        # self.follow_mouse()
+        self.acc = self.seek_with_approach(pg.mouse.get_pos())
+        # equations of motion
+        self.vel += self.acc
+        if self.vel.length() > MAX_SPEED:
+            self.vel.scale_to_length(MAX_SPEED)
+        self.pos += self.vel
+        if self.pos.x > WIDTH:
+            self.pos.x = 0
+        if self.pos.x < 0:
+            self.pos.x = WIDTH
+        if self.pos.y > HEIGHT:
+            self.pos.y = 0
+        if self.pos.y < 0:
+            self.pos.y = HEIGHT
+        self.rect.center = self.pos
 
-        if event.type == KEYUP:
-            if event.key == K_LEFT:
-                self.angle_change = 0
-            elif event.key == K_RIGHT:
-                self.angle_change = 0
-            elif event.key == K_UP:
-                self.thrust = 0
+    def draw_vectors(self):
+        scale = 25
+        # vel
+        pg.draw.line(screen, GREEN, self.pos, (self.pos + self.vel * scale), 5)
+        # desired
+        pg.draw.line(screen, RED, self.pos, (self.pos + self.desired * scale), 5)
+        # approach radius
+        #pg.draw.circle(screen, WHITE, pg.mouse.get_pos(), APPROACH_RADIUS, 1)
 
-    def wrap_around_screen(self):
-        """Wrap around screen."""
-        if self.rect.left > WIDTH:
-            self.rect.right = 0
-        if self.rect.right < 0:
-            self.rect.left = WIDTH
-        if self.rect.bottom <= 0:
-            self.rect.top = HEIGHT
-        if self.rect.top > HEIGHT:
-            self.rect.bottom = 0
+pg.init()
+screen = pg.display.set_mode((WIDTH, HEIGHT))
+clock = pg.time.Clock()
 
-player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
+all_sprites = pg.sprite.Group()
+Mob()
+paused = False
+show_vectors = True
+running = True
+while running:
+    clock.tick(FPS)
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            running = False
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_ESCAPE:
+                running = False
+            if event.key == pg.K_SPACE:
+                paused = not paused
+            if event.key == pg.K_v:
+                show_vectors = not show_vectors
+            if event.key == pg.K_m:
+                Mob()
 
-player = Player()
-
-
-while True:  # game loop
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
-
-
-    DISPLAY.fill(BLACK)
-
-    player.update()
-    player.position()
-    player.add_vectors()
-    player.draw_spaceship(DISPLAY)
-    player.wrap_around_screen()
-
-    print('x:', player.rect.x, 'y:', player.rect.y, 'player.angle:', player.angle)
-    print('trajectory_ang:', player.trajectory_angle, 'speed:', player.speed, 'thrust:', player.thrust)
-    pygame.display.update()
-    fps_clock.tick(FPS)
+    if not paused:
+        all_sprites.update()
+    pg.display.set_caption("{:.2f}".format(clock.get_fps()))
+    screen.fill(DARKGRAY)
+    all_sprites.draw(screen)
+    if show_vectors:
+        for sprite in all_sprites:
+            sprite.draw_vectors()
+    pg.display.flip()

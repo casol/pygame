@@ -32,6 +32,7 @@ BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
+MAX_SPEED = 9
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -64,7 +65,9 @@ class Player(pygame.sprite.Sprite):
 
         self.vel += self.acc
         # max speed
-
+        if self.vel.length() > MAX_SPEED:
+            self.vel.scale_to_length(MAX_SPEED)
+        """
         if self.vel[1] > 9:
             self.vel[1] = 9
         elif self.vel[1] < -9:
@@ -74,11 +77,20 @@ class Player(pygame.sprite.Sprite):
             self.vel[0] = 9
         elif self.vel[0] < -9:
             self.vel[0] = -9
-
+        """
 
         self.pos += self.vel + 0.5 * self.acc
 
         self.rect.center = self.pos
+
+    def draw_vectors(self, screen):
+        scale = 20
+        # vel
+        pygame.draw.line(screen, GREEN, self.pos, (self.pos + self.vel * scale), 5)
+        # desired
+        #pygame.draw.line(screen, RED, self.pos, (self.pos + self.desired * scale), 5)
+        ## approach radius
+        #pygame.draw.circle(screen, WHITE, pg.mouse.get_pos(), APPROACH_RADIUS, 1)
 
     def wrap_around_screen(self):
         """Wrap around screen."""
@@ -107,6 +119,7 @@ while True:  # game loop
     player.wrap_around_screen()
     all_sprites.update()
     all_sprites.draw(DISPLAY)
+    player.draw_vectors(DISPLAY)
     pygame.display.update()
     fps_clock.tick(FPS)
     print(player.vel)
