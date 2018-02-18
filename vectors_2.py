@@ -40,9 +40,12 @@ class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         # set ship image
-        # self.original_image = player_img  # image before rotation
-        self.image = pygame.Surface((40, 40))
-        self.image.fill(GREEN)
+        self.image = pygame.Surface((70, 50), pygame.SRCALPHA)
+        pygame.draw.polygon(self.image, (50, 120, 180), ((35, 0), (0, 35), (70, 35)))
+        #self.original_image = player_img  # image before rotation
+        #self.image = self.original_image
+        #self.image = pygame.Surface((40, 40))
+        #self.image.fill(GREEN)
         self.original_image = self.image
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH / 2, HEIGHT / 2)
@@ -69,36 +72,42 @@ class Player(pygame.sprite.Sprite):
 
         if keys[K_UP]:
             self.acc.y = -0.2
+
         if keys[K_DOWN]:
             self.acc.y = 0.2
 
-        #if event.type == pygame.KEYDOWN:
         if keys[K_a]:
-            self.angle_speed -= .01
-        elif keys[K_d]:
-            self.angle_speed += .01
-        #elif event.type == pygame.KEYUP:
-            #if keys[K_a]:
-                #self.angle_speed = 0
-            #elif keys[K_d]:
-                #self.angle_speed = 0
-
-        self.vel += self.acc
+            self.angle_speed = -1
+            player.rotate()
+        if keys[K_d]:
+            self.angle_speed = 1
+            player.rotate()
 
         # max speed
         if self.vel.length() > MAX_SPEED:
             self.vel.scale_to_length(MAX_SPEED)
 
-        if self.angle_speed != 0:
-            # Rotate the direction vector and then the image
-            self.heading.rotate_ip(self.angle_speed)
-            self.angle += self.angle_speed
-            self.image = pygame.transform.rotate(self.original_image, -self.angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
-        # Update the position vector and the rect.
+        # angle to radians
+        rad = math.radians(self.angle)
 
-        self.pos += self.vel + 0.5 * self.acc
+        self.vel += self.acc
+        self.pos += self.vel
+
+        #self.vel.x += self.acc.x * math.sin(rad)
+        #self.vel.y += self.acc.y * -math.cos(rad)
+
         self.rect.center = self.pos
+
+    def rotate(self):
+        # Rotate the heading vector and then the image
+        self.heading.rotate_ip(self.angle_speed)
+        self.angle += self.angle_speed
+        if self.angle > 360:
+            self.angle -= 360
+        elif self.angle < 0:
+            self.angle += 360
+        self.image = pygame.transform.rotate(self.original_image, -self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def draw_vectors(self, screen):
         scale = 20
@@ -136,9 +145,9 @@ while True:  # game loop
     all_sprites.draw(DISPLAY)
     player.draw_vectors(DISPLAY)
 
-    txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
+    txt = FONT.render('heading angle {:.1f}'.format(player.angle), True, (150, 150, 170))
     DISPLAY.blit(txt, (10, 10))
 
     pygame.display.update()
     fps_clock.tick(FPS)
-    print(player.vel)
+    print('vel:', player.vel, player.acc, player.heading)

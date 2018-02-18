@@ -31,10 +31,12 @@ class Mob(pg.sprite.Sprite):
         self.image = pg.Surface((MOB_SIZE, MOB_SIZE))
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
-        self.pos = vec(randint(0, WIDTH), randint(0, HEIGHT))
-        self.vel = vec(MAX_SPEED, 0).rotate(uniform(0, 360))
+        self.pos = vec(400, 300)
+        self.vel = vec(0, 0)
         self.acc = vec(0, 0)
+        self.heading = vec(0, -1)
         self.rect.center = self.pos
+        self.desired = vec(0, 0)
 
     def seek(self, target):
         self.desired = (target - self.pos).normalize() * MAX_SPEED
@@ -43,24 +45,13 @@ class Mob(pg.sprite.Sprite):
             steer.scale_to_length(MAX_FORCE)
         return steer
 
-    def seek_with_approach(self, target):
-        self.desired = (target - self.pos)
-        dist = self.desired.length()
-        self.desired.normalize_ip()
-        if dist < APPROACH_RADIUS:
-            self.desired *= dist / APPROACH_RADIUS * MAX_SPEED
-        else:
-            self.desired *= MAX_SPEED
-        steer = (self.desired - self.vel)
-        if steer.length() > MAX_FORCE:
-            steer.scale_to_length(MAX_FORCE)
-        return steer
-
     def update(self):
         # self.follow_mouse()
-        self.acc = self.seek_with_approach(pg.mouse.get_pos())
+        self.acc = self.seek(pg.mouse.get_pos())
         # equations of motion
-        self.vel += self.acc
+        keys = pg.key.get_pressed()
+        if keys[pg.K_UP]:
+            self.vel += self.acc
         if self.vel.length() > MAX_SPEED:
             self.vel.scale_to_length(MAX_SPEED)
         self.pos += self.vel
@@ -111,6 +102,7 @@ while running:
         all_sprites.update()
     pg.display.set_caption("{:.2f}".format(clock.get_fps()))
     screen.fill(DARKGRAY)
+    print('mouse', pg.mouse.get_pos(), )
     all_sprites.draw(screen)
     if show_vectors:
         for sprite in all_sprites:
