@@ -7,6 +7,7 @@ import random
 import os
 import math
 from pygame.locals import *  # pygame.locals.QUIT --> QUIT
+vec = pygame.math.Vector2
 
 # game assets
 game_folder = os.path.dirname(__file__)
@@ -20,7 +21,7 @@ FPS = 60  # frames per second
 fps_clock = pygame.time.Clock()
 
 # set up the window
-WIDTH = 800
+WIDTH = 1200
 HEIGHT = 800
 DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('YESS - Yet_Another_Space_Shooter')
@@ -31,6 +32,8 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+
+MAX_SPEED = 9
 
 
 class Player(pygame.sprite.Sprite):
@@ -44,54 +47,61 @@ class Player(pygame.sprite.Sprite):
         self.original_image.set_colorkey(BLACK)
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect()
-        self.radius = 20
-        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
-        self.rect.center = (WIDTH/2, HEIGHT/2)
-        self.delta_x = 1
-        self.delta_y = 1
-        self.rotation = 0
-        self.rotation_speed = 3
-        self.rotation_speed_r = -3
-        self.velocity_step = 2
+        self.position = vec(WIDTH / 2, HEIGHT / 2)
+        self.rect = self.image.get_rect(center=self.position)
+        self.vel = vec(0, 0)
+        self.acceleration = vec(0, -0.2)  # the acceleration vec points upwards
+        self.angle_speed = 0
+        self.angle = 0
+        self.radius = 25  # setting the sprite’s radius
+        self.last_update = pygame.time.get_ticks()
 
     def update(self):
         """Move based on keys pressed."""
-        key = pygame.key.get_pressed()
-        if key[K_RIGHT]:  # ship rotates clockwise
-            self.rotate_r()
-        elif key[K_LEFT]:  # ship rotates counterclockwise.
-            self.rotate()
-        if key[K_SPACE]:
+        keys = pygame.key.get_pressed()
+        if keys[K_LEFT]:
+            self.angle_speed = -2.5  # ship rotates counterclockwise
+            player.rotate()
+        if keys[K_RIGHT]:
+            self.angle_speed = 2.5  # ship rotates clockwise
+            player.rotate()
+        # If up or down is pressed, accelerate the ship by
+        # adding the acceleration to the velocity vector.
+        if keys[K_UP]:
+            self.vel += self.acceleration
+        if keys[K_SPACE]:
             player.shoot()
+        # max speed
+        if self.vel.length() > MAX_SPEED:
+            self.vel.scale_to_length(MAX_SPEED)
+
+        self.position += self.vel
+        self.rect.center = self.position
 
     def rotate(self):
         """Rotate an image while keeping its center."""
-        self.rotation = (self.rotation + self.rotation_speed) % 360
-        new_image = pygame.transform.rotate(self.original_image, self.rotation)
-        old_center = self.rect.center  # save its current center
-        self.image = new_image
-        self.rect = self.image.get_rect()  # replace old rect with new rect
-        self.rect.center = old_center  # put the new rect's center at old center
-
-    def rotate_r(self):
-        """Rotate an image while keeping its center."""
-        self.rotation = (self.rotation + self.rotation_speed_r) % 360
-        new_image = pygame.transform.rotate(self.original_image, self.rotation)
-        old_center = self.rect.center  # save its current center
-        self.image = new_image
-        self.rect = self.image.get_rect()  # replace old rect with new rect
-        self.rect.center = old_center  # put the new rect's center at old center
+        # Rotate the acceleration vector.
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 50:
+            self.acceleration.rotate_ip(self.angle_speed)
+            self.angle += self.angle_speed
+            if self.angle > 360:
+                self.angle -= 360
+            elif self.angle < 0:
+                self.angle += 360
+            self.image = pygame.transform.rotate(self.original_image, -self.angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
 
     def wrap_around_screen(self):
         """Wrap around screen."""
-        if self.rect.left > WIDTH:
-            self.rect.right = 0
-        if self.rect.right < 0:
-            self.rect.left = WIDTH
-        if self.rect.bottom <= 0:
-            self.rect.top = HEIGHT
-        if self.rect.top > HEIGHT:
-            self.rect.bottom = 0
+        if self.position.x > WIDTH:
+            self.position.x = 0
+        if self.position.x < 0:
+            self.position.x = WIDTH
+        if self.position.y <= 0:
+            self.position.y = HEIGHT
+        if self.position.y > HEIGHT:
+            self.position.y = 0
 
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
@@ -131,7 +141,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.radius = int(self.rect.width * 0.80 / 2)
-        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
+        #pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.x = random.randrange(WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speedy = random.randrange(1, 8)
@@ -149,7 +159,7 @@ class Asteroid(pygame.sprite.Sprite):
 # load all games graphic
 background = pygame.image.load(os.path.join(img_folder, 'darkPurple.png')).convert()
 background_rect = background.get_rect()
-background = pygame.transform.scale(background, (800, 800))
+background = pygame.transform.scale(background, (1200, 800))
 player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
 asto_img = pygame.image.load(os.path.join(img_folder, 'meteorBrown_med1.png')).convert()
 
@@ -193,12 +203,8 @@ while True:  # game loop
     hits = pygame.sprite.spritecollide(player, asteroids, False, pygame.sprite.collide_circle)
     if hits:
         pass
-        # pygame.quit()
-        # sys.exit()
-
-    print('top:', player.rect.top, 'bottom:', player.rect.bottom,
-          'rect_x:', player.rect.x, 'rect_y:', player.rect.y,
-          player.rotation, player.rect.center)
+        #pygame.quit()
+        #sys.exit()
 
     pygame.display.update()
     fps_clock.tick(FPS)
