@@ -5,7 +5,7 @@ import pygame
 import sys
 import random
 import os
-import math
+
 from pygame.locals import *  # pygame.locals.QUIT --> QUIT
 vec = pygame.math.Vector2
 
@@ -16,6 +16,7 @@ sound_folder = os.path.join(game_folder, 'sound')
 
 # initialize pygame
 pygame.init()
+FONT = pygame.font.Font(None, 24)
 
 FPS = 60  # frames per second
 fps_clock = pygame.time.Clock()
@@ -33,7 +34,7 @@ BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
-MAX_SPEED = 9
+MAX_SPEED = 7
 
 
 class Player(pygame.sprite.Sprite):
@@ -54,7 +55,6 @@ class Player(pygame.sprite.Sprite):
         self.angle_speed = 0
         self.angle = 0
         self.radius = 25  # setting the sprite’s radius
-        self.last_update = pygame.time.get_ticks()
 
     def update(self):
         """Move based on keys pressed."""
@@ -65,7 +65,7 @@ class Player(pygame.sprite.Sprite):
         if keys[K_RIGHT]:
             self.angle_speed = 2.5  # ship rotates clockwise
             player.rotate()
-        # If up or down is pressed, accelerate the ship by
+        # If up is pressed, accelerate the ship by
         # adding the acceleration to the velocity vector.
         if keys[K_UP]:
             self.vel += self.acceleration
@@ -81,16 +81,14 @@ class Player(pygame.sprite.Sprite):
     def rotate(self):
         """Rotate an image while keeping its center."""
         # Rotate the acceleration vector.
-        now = pygame.time.get_ticks()
-        if now - self.last_update > 50:
-            self.acceleration.rotate_ip(self.angle_speed)
-            self.angle += self.angle_speed
-            if self.angle > 360:
-                self.angle -= 360
-            elif self.angle < 0:
-                self.angle += 360
-            self.image = pygame.transform.rotate(self.original_image, -self.angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
+        self.acceleration.rotate_ip(self.angle_speed)
+        self.angle += self.angle_speed
+        if self.angle > 360:
+            self.angle -= 360
+        elif self.angle < 0:
+            self.angle += 360
+        self.image = pygame.transform.rotate(self.original_image, -self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def wrap_around_screen(self):
         """Wrap around screen."""
@@ -107,28 +105,33 @@ class Player(pygame.sprite.Sprite):
         surface.blit(self.image, (self.rect.x, self.rect.y))
 
     def shoot(self):
-        missile = Missile(self.rect.centerx, self.rect.top)
+        missile = Missile(self.rect.center, self.acceleration, self.angle)
         all_sprites.add(missile)
         missiles.add(missile)
 
 
 class Missile(pygame.sprite.Sprite):
     """A missile launched by the player's ship."""
-    def __init__(self, x, y):
-        """Initialize missile sprite."""
+    def __init__(self, position, direction, angle):
+        """Initialize missile sprite. Take the position,
+         direction and angle of the player.
+         """
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((10, 15))
+        self.image = pygame.Surface([4, 10], pygame.SRCALPHA)
         self.image.fill(BLUE)
-        self.rect = self.image.get_rect()
-        self.rect.bottom = y
-        self.rect.centerx = x
-        # missile going upward
-        self.speedy = -10
+        # Rotate the image by the player.angle (negative since y-axis is flipped).
+        self.image = pygame.transform.rotozoom(self.image, angle, 1)
+        # Pass the center of the player as the center of the bullet.rect.
+        self.rect = self.image.get_rect(center=position)
+        self.position = vec(position)  # The position vector.
+        self.velocity = direction * 21  # Multiply by desired speed.
 
     def update(self):
-        self.rect.y += self.speedy
-        # out of the screen
-        if self.rect.bottom < 0:
+        """Move the bullet."""
+        self.position += self.velocity  # Update the position vector.
+        self.rect.center = self.position  # And the rect.
+
+        if self.rect.x < 0 or self.rect.x > WIDTH or self.rect.y < 0 or self.rect.y > HEIGHT:
             self.kill()
 
 
@@ -206,5 +209,8 @@ while True:  # game loop
         #pygame.quit()
         #sys.exit()
 
+    txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
+    DISPLAY.blit(txt, (10, 10))
+    print()
     pygame.display.update()
     fps_clock.tick(FPS)

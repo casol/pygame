@@ -1,105 +1,82 @@
-# vectors
-import pygame
-import sys
-import random
-import os
-import math
-from pygame.locals import *  # pygame.locals.QUIT --> QUIT
-
-vec = pygame.math.Vector2
+import pygame as pg
+from pygame.math import Vector2
 
 
-# game assets
-game_folder = os.path.dirname(__file__)
-img_folder = os.path.join(game_folder, 'img')
-sound_folder = os.path.join(game_folder, 'sound')
+pg.init()
+screen = pg.display.set_mode((640, 480))
+screen_rect = screen.get_rect()
 
-pygame.init()
-FPS = 60
-fps_clock = pygame.time.Clock()
-WIDTH = 800
-HEIGHT = 800
-DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
-BLACK = (0, 0, 0)
-
-MAX_SPEED = 9
+FONT = pg.font.Font(None, 24)
+BULLET_IMAGE = pg.Surface((20, 11), pg.SRCALPHA)
+pg.draw.polygon(BULLET_IMAGE, pg.Color('aquamarine1'),
+                [(0, 0), (20, 5), (0, 11)])
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.original_image = player_img  # image before rotation
-        self.image = self.original_image
-        self.original_image = self.image
-        self.position = vec(WIDTH / 2, HEIGHT / 2)
-        self.rect = self.image.get_rect(center=self.position)
-        self.vel = vec(0, 0)
-        self.acceleration = vec(0, -0.2)  # The acceleration vec points upwards.
-        self.angle_speed = 0
-        self.angle = 0
+class Bullet(pg.sprite.Sprite):
+
+    def __init__(self, pos, angle):
+        super().__init__()
+        self.image = pg.transform.rotate(BULLET_IMAGE, -angle)
+        self.rect = self.image.get_rect(center=pos)
+        # To apply an offset to the start position,
+        # create another vector and rotate it as well.
+        offset = Vector2(40, 0).rotate(angle)
+        # Then add the offset vector to the position vector.
+        self.pos = Vector2(pos) + offset  # Center of the sprite.
+        # Rotate the direction vector (1, 0) by the angle.
+        # Multiply by desired speed.
+        self.velocity = Vector2(1, 0).rotate(angle) * 9
 
     def update(self):
-        keys = pygame.key.get_pressed()
-        if keys[K_LEFT]:
-            self.angle_speed = -2.5
-            player.rotate()
-        if keys[K_RIGHT]:
-            self.angle_speed = 2.5
-            player.rotate()
-        # If up or down is pressed, accelerate the ship by
-        # adding the acceleration to the velocity vector.
-        if keys[K_UP]:
-            self.vel += self.acceleration
-        if keys[K_DOWN]:
-            self.vel -= self.acceleration
+        self.pos += self.velocity  # Add velocity to pos to move the sprite.
+        self.rect.center = self.pos  # Update rect coords.
 
-        # max speed
-        if self.vel.length() > MAX_SPEED:
-            self.vel.scale_to_length(MAX_SPEED)
+        if not screen_rect.contains(self.rect):
+            self.kill()
 
-        self.position += self.vel
-        self.rect.center = self.position
 
-    def rotate(self):
-        # Rotate the acceleration vector.
-        self.acceleration.rotate_ip(self.angle_speed)
-        self.angle += self.angle_speed
-        if self.angle > 360:
-            self.angle -= 360
-        elif self.angle < 0:
-            self.angle += 360
-        self.image = pygame.transform.rotate(self.original_image, -self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
+def main():
+    clock = pg.time.Clock()
+    cannon_img = pg.Surface((40, 20), pg.SRCALPHA)
+    cannon_img.fill(pg.Color('aquamarine3'))
+    cannon = cannon_img.get_rect(center=(320, 240))
+    angle = 0
+    bullet_group = pg.sprite.Group()  # Add bullets to this group.
 
-    def wrap_around_screen(self):
-        """Wrap around screen."""
-        if self.position.x > WIDTH:
-            self.position.x = 0
-        if self.position.x < 0:
-            self.position.x = WIDTH
-        if self.position.y <= 0:
-            self.position.y = HEIGHT
-        if self.position.y > HEIGHT:
-            self.position.y = 0
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                return
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                # Left button fires a bullet from center with
+                # current angle. Add the bullet to the bullet_group.
+                if event.button == 1:
+                    bullet_group.add(Bullet(cannon.center, angle))
 
-player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
+        keys = pg.key.get_pressed()
+        if keys[pg.K_a]:
+            angle -= 3
+        elif keys[pg.K_d]:
+            angle += 3
+        if keys[pg.K_SPACE]:
+            bullet_group.add(Bullet(cannon.center, angle))
 
-all_sprites = pygame.sprite.Group()
-player = Player()
-all_sprites.add(player)
+        # Rotate the cannon image.
+        rotated_cannon_img = pg.transform.rotate(cannon_img, -angle)
+        cannon = rotated_cannon_img.get_rect(center=cannon.center)
 
-while True:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
+        bullet_group.update()
 
-    player.wrap_around_screen()
-    all_sprites.update()
+        # Draw
+        screen.fill((30, 40, 50))
+        screen.blit(rotated_cannon_img, cannon)
+        bullet_group.draw(screen)
+        txt = FONT.render('angle {:.1f}'.format(angle), True, (150, 150, 170))
+        screen.blit(txt, (10, 10))
+        pg.display.update()
 
-    DISPLAY.fill(BLACK)
-    all_sprites.draw(DISPLAY)
-    pygame.display.set_caption('angle {:.1f} accel {} accel angle {:.1f}'.format(
-        player.angle, player.acceleration, player.acceleration.as_polar()[1]))
-    pygame.display.update()
-    fps_clock.tick(FPS)
+        clock.tick(30)
+
+if __name__ == '__main__':
+    main()
+    pg.quit()
