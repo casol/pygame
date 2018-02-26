@@ -16,10 +16,20 @@ sound_folder = os.path.join(game_folder, 'sound')
 
 # initialize pygame
 pygame.init()
-FONT = pygame.font.Font(None, 24)
-
 FPS = 60  # frames per second
 fps_clock = pygame.time.Clock()
+
+# drew text
+font_name = pygame.font.match_font('arial')
+
+
+def draw_text(surf, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, WHITE)
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
+
 
 # set up the window
 WIDTH = 1200
@@ -119,8 +129,8 @@ class Missile(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface([4, 10], pygame.SRCALPHA)
         self.image.fill(BLUE)
-        # Rotate the image by the player.angle (negative since y-axis is flipped).
-        self.image = pygame.transform.rotozoom(self.image, angle, 1)
+        # rotate the image by the player.angle
+        self.image = pygame.transform.rotate(self.image, angle)
         # Pass the center of the player as the center of the bullet.rect.
         self.rect = self.image.get_rect(center=position)
         self.position = vec(position)  # The position vector.
@@ -140,8 +150,9 @@ class Asteroid(pygame.sprite.Sprite):
     def __init__(self):
         """Initialize asteroid sprite."""
         pygame.sprite.Sprite.__init__(self)
-        self.image = asto_img
-        self.image.set_colorkey(BLACK)
+        self.image_orig = random.choice(meteor_images)
+        self.image_orig.set_colorkey(BLACK)
+        self.image = self.image_orig.copy()
         self.rect = self.image.get_rect()
         self.radius = int(self.rect.width * 0.80 / 2)
         #pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
@@ -149,8 +160,19 @@ class Asteroid(pygame.sprite.Sprite):
         self.rect.y = random.randrange(-100, -40)
         self.speedy = random.randrange(1, 8)
         self.speedx = random.randrange(-3, 3)
+        self.rot = 0
+        self.rot_speed = random.randrange(-3, 3)
+
+    def rotate(self):
+        self.rot = (self.rot + self.rot_speed) % 360
+        new_image = pygame.transform.rotate(self.image_orig, self.rot)
+        old_center = self.rect.center
+        self.image = new_image
+        self.rect = self.image.get_rect()
+        self.rect.center = old_center
 
     def update(self):
+        self.rotate()
         self.rect.x += self.speedx
         self.rect.y += self.speedy
         if self.rect.top > HEIGHT + 10 or self.rect.left < -25 or self.rect.right > WIDTH + 20:
@@ -159,13 +181,20 @@ class Asteroid(pygame.sprite.Sprite):
             self.speedy = random.randrange(1, 8)
 
 
+
 # load all games graphic
 background = pygame.image.load(os.path.join(img_folder, 'darkPurple.png')).convert()
 background_rect = background.get_rect()
+
 background = pygame.transform.scale(background, (1200, 800))
 player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
-asto_img = pygame.image.load(os.path.join(img_folder, 'meteorBrown_med1.png')).convert()
 
+meteor_images = []
+meteor_list = ['meteorBrown_big1.png', 'meteorBrown_big2.png', 'meteorBrown_big3.png',
+               'meteorBrown_big4.png', 'meteorBrown_med1.png', 'meteorBrown_med3.png',
+               'meteorBrown_small1.png', 'meteorBrown_small2.png']
+for img in meteor_list:
+    meteor_images.append(pygame.image.load(os.path.join(img_folder, img)).convert())
 
 all_sprites = pygame.sprite.Group()
 asteroids = pygame.sprite.Group()
@@ -178,6 +207,8 @@ for i in range(8):
     d = Asteroid()
     all_sprites.add(d)
     asteroids.add(d)
+# player score
+score = 0
 
 
 while True:  # game loop
@@ -191,13 +222,16 @@ while True:  # game loop
     # drew / update
     all_sprites.update()
     all_sprites.draw(DISPLAY)
+    draw_text(DISPLAY, str(score), 18, WIDTH / 2, 10)
     player.draw(DISPLAY)
     player.update()
     player.wrap_around_screen()
+
     # check if a missile hit an asteroid
     hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
     # create new
     for hit in hits:
+        score += 50
         d = Asteroid()
         all_sprites.add(d)
         asteroids.add(d)
@@ -209,8 +243,7 @@ while True:  # game loop
         #pygame.quit()
         #sys.exit()
 
-    txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
-    DISPLAY.blit(txt, (10, 10))
-    print()
+    #txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
+    #DISPLAY.blit(txt, (10, 10))
     pygame.display.update()
     fps_clock.tick(FPS)
