@@ -231,7 +231,7 @@ while True:  # game loop
     hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
     # create new
     for hit in hits:
-        score += 50
+        score += 50 - hit.radius  # assign points based on the size of meteor
         d = Asteroid()
         all_sprites.add(d)
         asteroids.add(d)
