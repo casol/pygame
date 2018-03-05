@@ -1,8 +1,6 @@
 import sys
 import pygame
 from pygame.locals import *
-
-
 vec = pygame.math.Vector2
 
 pygame.init()
@@ -13,6 +11,7 @@ HEIGHT = 800
 DISPLAY = pygame.display.set_mode((WIDTH, HEIGHT))
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
+previous_time = pygame.time.get_ticks()
 
 MAX_SPEED = 7
 
@@ -32,6 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.acceleration = vec(0, -0.2)  # The acceleration vec points upwards.
         self.angle_speed = 0
         self.angle = 0
+        self.previous_time = pygame.time.get_ticks()  # Store the previous time when a bullet was fired
 
     def update(self):
         """Update the player's position."""
@@ -42,14 +42,18 @@ class Player(pygame.sprite.Sprite):
         if keys[K_RIGHT]:
             self.angle_speed = 2
             player.rotate()
-        # If up or down is pressed, accelerate the ship by
+        # If up is pressed, accelerate the ship by
         # adding the acceleration to the velocity vector.
         if keys[K_UP]:
             self.vel += self.acceleration
-        if keys[K_DOWN]:
-            self.vel -= self.acceleration
         if keys[K_SPACE]:
-            player.shoot()
+            # delay missile
+            current_time = pygame.time.get_ticks()
+            if current_time - self.previous_time > 500:  # subtract the time since the last tick
+                self.previous_time = current_time
+                # fire when 500 ms have passed
+                player.shoot()
+
         # max speed
         if self.vel.length() > MAX_SPEED:
             self.vel.scale_to_length(MAX_SPEED)
@@ -58,7 +62,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = self.position
 
     def rotate(self):
-        # Rotate the acceleration vector.
+        # rotate the acceleration vector
         self.acceleration.rotate_ip(self.angle_speed)
         self.angle += self.angle_speed
         if self.angle > 360:
@@ -80,31 +84,33 @@ class Player(pygame.sprite.Sprite):
             self.position.y = 0
 
     def shoot(self):
-        missile = Missile(self.rect.center, self.acceleration, player.acceleration.as_polar()[1])
+        # create and add missile object to the group
+        missile = Missile(self.rect.center,
+                          self.vel + 40 * self.acceleration,  # new value here!
+                          player.acceleration.as_polar()[1])
         all_sprites.add(missile)
         missiles.add(missile)
+        print(missile.velocity)
 
 
 class Missile(pygame.sprite.Sprite):
     """This class represents the bullet.
-
      A missile launched by the player's ship.
      """
 
-    def __init__(self, position, direction, angle):
+    def __init__(self, position, velocity, angle):
         """Initialize missile sprite.
-
          Take the position, direction and angle of the player.
          """
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface([4, 10], pygame.SRCALPHA)
         self.image.fill(BLUE)
-        # Rotate the image by the player.angle (negative since y-axis is flipped).
-        self.image = pygame.transform.rotozoom(self.image, angle, 1)
+        # Rotate the image by the player.angle
+        self.image = pygame.transform.rotozoom(self.image, -angle, 1)
         # Pass the center of the player as the center of the bullet.rect.
         self.rect = self.image.get_rect(center=position)
         self.position = vec(position)  # The position vector.
-        self.velocity = direction * 50  # Multiply by desired speed.
+        self.velocity = velocity
 
     def update(self):
         """Move the bullet."""

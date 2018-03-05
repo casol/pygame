@@ -49,6 +49,7 @@ MAX_SPEED = 7
 
 class Player(pygame.sprite.Sprite):
     """The player's ship."""
+
     def __init__(self):
         """Initialise player object."""
         # Call the parent class (Sprite constructor)
@@ -65,6 +66,8 @@ class Player(pygame.sprite.Sprite):
         self.angle_speed = 0
         self.angle = 0
         self.radius = 25  # setting the sprite’s radius
+        self.previous_time = pygame.time.get_ticks()
+        self.missile_delay = 500
 
     def update(self):
         """Move based on keys pressed."""
@@ -80,7 +83,13 @@ class Player(pygame.sprite.Sprite):
         if keys[K_UP]:
             self.vel += self.acceleration
         if keys[K_SPACE]:
-            player.shoot()
+            # delay missile
+            current_time = pygame.time.get_ticks()
+            if current_time - self.previous_time > self.missile_delay:  # subtract the time since the last tick
+                self.previous_time = current_time
+                # fire when 500 ms have passed
+                player.shoot()
+
         # max speed
         if self.vel.length() > MAX_SPEED:
             self.vel.scale_to_length(MAX_SPEED)
@@ -115,38 +124,47 @@ class Player(pygame.sprite.Sprite):
         surface.blit(self.image, (self.rect.x, self.rect.y))
 
     def shoot(self):
-        missile = Missile(self.rect.center, self.acceleration, self.angle)
+        # create and add the missile object to the group
+        missile = Missile(self.rect.center,
+                          self.vel + 40 * self.acceleration,
+                          player.acceleration.as_polar()[1])
         all_sprites.add(missile)
         missiles.add(missile)
 
 
 class Missile(pygame.sprite.Sprite):
-    """A missile launched by the player's ship."""
-    def __init__(self, position, direction, angle):
-        """Initialize missile sprite. Take the position,
-         direction and angle of the player.
+    """This class represents the bullet.
+     A missile launched by the player's ship.
+     """
+
+    def __init__(self, position, velocity, angle):
+        """Initialize missile sprite.
+         Take the velocity, direction and angle of the player.
          """
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface([4, 10], pygame.SRCALPHA)
-        self.image.fill(BLUE)
-        # rotate the image by the player.angle
-        self.image = pygame.transform.rotate(self.image, angle)
-        # Pass the center of the player as the center of the bullet.rect.
+        self.original_image = missile_img  # image before rotation
+        self.original_image.set_colorkey(BLACK)
+        self.image = self.original_image.copy()
+        # Rotate the image by the player.angle
+        self.image = pygame.transform.rotozoom(self.image, -angle, 1)
+        self.image.set_colorkey(BLACK)
+        # Pass the center of the player as the center of the bullet.rect
         self.rect = self.image.get_rect(center=position)
-        self.position = vec(position)  # The position vector.
-        self.velocity = direction * 21  # Multiply by desired speed.
+        self.position = vec(position)  # The position vector
+        self.velocity = velocity
 
     def update(self):
         """Move the bullet."""
-        self.position += self.velocity  # Update the position vector.
-        self.rect.center = self.position  # And the rect.
-
+        self.position += self.velocity  # Update the position vector
+        self.rect.center = self.position  # And the rect
+        # Kill when the projectile leaves the screen
         if self.rect.x < 0 or self.rect.x > WIDTH or self.rect.y < 0 or self.rect.y > HEIGHT:
             self.kill()
 
 
 class Asteroid(pygame.sprite.Sprite):
     """Asteroid object."""
+
     def __init__(self):
         """Initialize asteroid sprite."""
         pygame.sprite.Sprite.__init__(self)
@@ -164,6 +182,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.rot_speed = random.randrange(-3, 3)
 
     def rotate(self):
+        """Rotate an asteroid image while keeping its center."""
         self.rot = (self.rot + self.rot_speed) % 360
         new_image = pygame.transform.rotate(self.image_orig, self.rot)
         old_center = self.rect.center
@@ -181,13 +200,13 @@ class Asteroid(pygame.sprite.Sprite):
             self.speedy = random.randrange(1, 8)
 
 
-
 # load all games graphic
 background = pygame.image.load(os.path.join(img_folder, 'darkPurple.png')).convert()
 background_rect = background.get_rect()
 
 background = pygame.transform.scale(background, (1200, 800))
 player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
+missile_img = pygame.image.load(os.path.join(img_folder, 'laserGreen05.png')).convert()
 
 meteor_images = []
 meteor_list = ['meteorBrown_big1.png', 'meteorBrown_big2.png', 'meteorBrown_big3.png',
@@ -239,9 +258,8 @@ while True:  # game loop
     # see if the player Sprite has collided with anything in the asteroids Group
     hits = pygame.sprite.spritecollide(player, asteroids, False, pygame.sprite.collide_circle)
     if hits:
-        pass
-        #pygame.quit()
-        #sys.exit()
+        pygame.quit()
+        sys.exit()
 
     #txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
     #DISPLAY.blit(txt, (10, 10))
