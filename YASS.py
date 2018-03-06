@@ -44,7 +44,7 @@ BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
-MAX_SPEED = 7
+MAX_SPEED = 6
 
 
 class Player(pygame.sprite.Sprite):
@@ -68,6 +68,7 @@ class Player(pygame.sprite.Sprite):
         self.radius = 25  # setting the sprite’s radius
         self.previous_time = pygame.time.get_ticks()
         self.missile_delay = 500
+        self.health = 100  # player health bar
 
     def update(self):
         """Move based on keys pressed."""
@@ -222,10 +223,16 @@ missiles = pygame.sprite.Group()
 player = Player()
 #all_sprites.add(player)
 
+
+def new_asteroid():
+    new_asd = Asteroid()
+    all_sprites.add(new_asd)
+    asteroids.add(new_asd)
+
+# create asteroids
 for i in range(8):
-    d = Asteroid()
-    all_sprites.add(d)
-    asteroids.add(d)
+    new_asteroid()
+
 # player score
 score = 0
 
@@ -246,22 +253,29 @@ while True:  # game loop
     player.update()
     player.wrap_around_screen()
 
+    # Find all sprites that collide between two groups
     # check if a missile hit an asteroid
-    hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
-    # create new
-    for hit in hits:
-        score += 50 - hit.radius  # assign points based on the size of meteor
-        d = Asteroid()
-        all_sprites.add(d)
-        asteroids.add(d)
+    missile_hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
+    # Check the list of colliding sprites, and add one to the score for each one
+    for hit in missile_hits:
+        score += 50 - hit.radius  # assign points based on the size of asteroid
+        new_asteroid()  # spawn a new asteroid
 
-    # see if the player Sprite has collided with anything in the asteroids Group
-    hits = pygame.sprite.spritecollide(player, asteroids, False, pygame.sprite.collide_circle)
-    if hits:
-        pygame.quit()
-        sys.exit()
+    # See if the player Sprite has collided with anything in the asteroids Group
+    # The True flag will remove the sprite in asteroids group
+    # Return a list containing all Sprites in a Group that intersect with another Sprite
+    hits = pygame.sprite.spritecollide(player, asteroids, True, pygame.sprite.collide_circle)
+    for hit in hits:
+        player.health -= hit.radius * 2
+        new_asteroid()  # spawn a new asteroid
+        if player.health <= 0:
+            pass
+            pygame.quit()
+            sys.exit()
 
     #txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
     #DISPLAY.blit(txt, (10, 10))
+    print(player.health)
+
     pygame.display.update()
     fps_clock.tick(FPS)
