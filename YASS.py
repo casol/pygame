@@ -132,6 +132,18 @@ class Player(pygame.sprite.Sprite):
         all_sprites.add(missile)
         missiles.add(missile)
 
+    def drew_health_bar(self, surface, x, y, health):
+        """Draw health bar."""
+        if health < 0:
+            health = 0
+        BAR_LENGTH = 100
+        BAR_HEIGHT = 10
+        fill = (health / 100) * BAR_LENGTH
+        outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
+        fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+        pygame.draw.rect(surface, GREEN, fill_rect)
+        pygame.draw.rect(surface, WHITE, outline_rect, 2)
+
 
 class Missile(pygame.sprite.Sprite):
     """This class represents the bullet.
@@ -252,6 +264,7 @@ while True:  # game loop
     player.draw(DISPLAY)
     player.update()
     player.wrap_around_screen()
+    player.drew_health_bar(DISPLAY, 10, 10, player.health)
 
     # Find all sprites that collide between two groups
     # check if a missile hit an asteroid
