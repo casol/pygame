@@ -67,7 +67,7 @@ class Player(pygame.sprite.Sprite):
         self.angle = 0
         self.radius = 25  # setting the sprite’s radius
         self.previous_time = pygame.time.get_ticks()
-        self.missile_delay = 500
+        self.missile_delay = 500  # how long the ship should wait before shooting
         self.health = 100  # player health bar
 
     def update(self):
@@ -136,11 +136,11 @@ class Player(pygame.sprite.Sprite):
         """Draw health bar."""
         if health < 0:
             health = 0
-        BAR_LENGTH = 100
-        BAR_HEIGHT = 10
-        fill = (health / 100) * BAR_LENGTH
-        outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
-        fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+        bar_length = 100
+        bar_height = 10
+        fill = (health / 100) * bar_length
+        outline_rect = pygame.Rect(x, y, bar_length, bar_height)
+        fill_rect = pygame.Rect(x, y, fill, bar_height)
         pygame.draw.rect(surface, GREEN, fill_rect)
         pygame.draw.rect(surface, WHITE, outline_rect, 2)
 
@@ -213,20 +213,60 @@ class Asteroid(pygame.sprite.Sprite):
             self.speedy = random.randrange(1, 8)
 
 
-# load all games graphic
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = explosion_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 8
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(explosion_anim[self.size]):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = explosion_anim[self.size][self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+
+
+# Load all games graphic
 background = pygame.image.load(os.path.join(img_folder, 'darkPurple.png')).convert()
 background_rect = background.get_rect()
 
 background = pygame.transform.scale(background, (1200, 800))
 player_img = pygame.image.load(os.path.join(img_folder, 'playerShip1_red.png')).convert()
 missile_img = pygame.image.load(os.path.join(img_folder, 'laserGreen05.png')).convert()
-
+# Asteroids graphic
+img_folder_meteors = os.path.join(img_folder, 'meteors')
 meteor_images = []
 meteor_list = ['meteorBrown_big1.png', 'meteorBrown_big2.png', 'meteorBrown_big3.png',
                'meteorBrown_big4.png', 'meteorBrown_med1.png', 'meteorBrown_med3.png',
                'meteorBrown_small1.png', 'meteorBrown_small2.png']
 for img in meteor_list:
-    meteor_images.append(pygame.image.load(os.path.join(img_folder, img)).convert())
+    meteor_images.append(pygame.image.load(os.path.join(img_folder_meteors, img)).convert())
+
+# Explosion
+img_folder_explosions = os.path.join(img_folder, 'explosion_animations')
+explosion_anim = {}
+explosion_anim['lg'] = []
+explosion_anim['sm'] = []
+for i in range(1, 65):
+    image_name = '{}.png'.format(i)
+    img = pygame.image.load(os.path.join(img_folder_explosions, image_name)).convert()
+    img.set_colorkey(BLACK)
+    explosion_anim['lg'].append(img)
+    img_sm = pygame.transform.scale(img, (40, 40))
+    explosion_anim['sm'].append(img_sm)
+
 
 all_sprites = pygame.sprite.Group()
 asteroids = pygame.sprite.Group()
@@ -272,6 +312,8 @@ while True:  # game loop
     # Check the list of colliding sprites, and add one to the score for each one
     for hit in missile_hits:
         score += 50 - hit.radius  # assign points based on the size of asteroid
+        explosion = Explosion(hit.rect.center, 'lg')
+        all_sprites.add(explosion)
         new_asteroid()  # spawn a new asteroid
 
     # See if the player Sprite has collided with anything in the asteroids Group
@@ -280,6 +322,8 @@ while True:  # game loop
     hits = pygame.sprite.spritecollide(player, asteroids, True, pygame.sprite.collide_circle)
     for hit in hits:
         player.health -= hit.radius * 2
+        expl = Explosion(hit.rect.center, 'sm')
+        all_sprites.add(expl)
         new_asteroid()  # spawn a new asteroid
         if player.health <= 0:
             pass
