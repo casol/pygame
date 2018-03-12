@@ -214,7 +214,9 @@ class Asteroid(pygame.sprite.Sprite):
 
 
 class Explosion(pygame.sprite.Sprite):
+    """Explosion object."""
     def __init__(self, center, size):
+        """Initialize explosion sprite."""
         pygame.sprite.Sprite.__init__(self)
         self.size = size
         self.image = explosion_anim[self.size][0]
@@ -258,13 +260,20 @@ for img in meteor_list:
 img_folder_explosions = os.path.join(img_folder, 'explosion_animations')
 explosion_anim = {}
 explosion_anim['lg'] = []
+explosion_anim['mid'] = []
 explosion_anim['sm'] = []
+
 for i in range(1, 65):
     image_name = '{}.png'.format(i)
     img = pygame.image.load(os.path.join(img_folder_explosions, image_name)).convert()
     img.set_colorkey(BLACK)
+    #img_lg = pygame.transform.scale(img, (100, 100))
     explosion_anim['lg'].append(img)
-    img_sm = pygame.transform.scale(img, (40, 40))
+
+    img_mid = pygame.transform.scale(img, (93, 93))
+    explosion_anim['mid'].append(img_mid)
+
+    img_sm = pygame.transform.scale(img, (50, 50))
     explosion_anim['sm'].append(img_sm)
 
 
@@ -309,10 +318,15 @@ while True:  # game loop
     # Find all sprites that collide between two groups
     # check if a missile hit an asteroid
     missile_hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
-    # Check the list of colliding sprites, and add one to the score for each one
+    # Check the list of colliding sprites
     for hit in missile_hits:
         score += 50 - hit.radius  # assign points based on the size of asteroid
-        explosion = Explosion(hit.rect.center, 'lg')
+        print(hit.radius)
+        # animate explosion based on the size of asteroid
+        if hit.radius > 34:
+            explosion = Explosion(hit.rect.center, 'lg')
+        else:
+            explosion = Explosion(hit.rect.center, 'mid')
         all_sprites.add(explosion)
         new_asteroid()  # spawn a new asteroid
 
@@ -332,7 +346,5 @@ while True:  # game loop
 
     #txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
     #DISPLAY.blit(txt, (10, 10))
-    print(player.health)
-
     pygame.display.update()
     fps_clock.tick(FPS)
