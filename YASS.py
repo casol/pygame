@@ -122,9 +122,11 @@ class Player(pygame.sprite.Sprite):
             self.position.y = 0
 
     def draw(self, surface):
+        """Blit sprite into the surface."""
         surface.blit(self.image, (self.rect.x, self.rect.y))
 
     def shoot(self):
+        """Shoot a missile."""
         # create and add the missile object to the group
         missile = Missile(self.rect.center,
                           self.vel + 40 * self.acceleration,
@@ -282,7 +284,7 @@ asteroids = pygame.sprite.Group()
 missiles = pygame.sprite.Group()
 
 player = Player()
-#all_sprites.add(player)
+all_sprites.add(player)
 
 
 def new_asteroid():
@@ -303,18 +305,6 @@ while True:  # game loop
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
-
-    DISPLAY.fill(BLACK)
-    DISPLAY.blit(background, background_rect)
-    # drew / update
-    all_sprites.update()
-    all_sprites.draw(DISPLAY)
-    draw_text(DISPLAY, str(score), 18, WIDTH / 2, 10)
-    player.draw(DISPLAY)
-    player.update()
-    player.wrap_around_screen()
-    player.drew_health_bar(DISPLAY, 10, 10, player.health)
-
     # Find all sprites that collide between two groups
     # check if a missile hit an asteroid
     missile_hits = pygame.sprite.groupcollide(asteroids, missiles, True, True)
@@ -340,11 +330,24 @@ while True:  # game loop
         all_sprites.add(expl)
         new_asteroid()  # spawn a new asteroid
         if player.health <= 0:
-            pass
-            pygame.quit()
-            sys.exit()
+            last_explosion = Explosion(player.rect.center, 'lg')
+            all_sprites.add(last_explosion)
+            player.kill()
+    # player has been killed
+    if not player.alive() and not last_explosion.alive():
+        pygame.quit()
+        sys.exit()
 
     #txt = FONT.render('angle {:.1f}'.format(player.angle), True, (150, 150, 170))
     #DISPLAY.blit(txt, (10, 10))
     pygame.display.update()
+
+    DISPLAY.fill(BLACK)
+    DISPLAY.blit(background, background_rect)
+    # drew / update
+    all_sprites.update()
+    all_sprites.draw(DISPLAY)
+    draw_text(DISPLAY, str(score), 18, WIDTH / 2, 10)
+    player.wrap_around_screen()
+    player.drew_health_bar(DISPLAY, 10, 10, player.health)
     fps_clock.tick(FPS)
